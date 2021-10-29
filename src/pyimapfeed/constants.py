@@ -7,9 +7,9 @@ GUI_ACTION_HEADER = "Actions"
 GUI_BUTTON_PERFORM_ACTION = "Perform and next"
 
 MESSAGE_PRIORITIES = {
-    0: "Very High",
-    16: "High",
-    32: "Normal",
-    64: "Low",
-    128: "Very Low",
+    0: "&1 - Very High",
+    16: "&2 - High",
+    32: "&3 - Normal",
+    64: "&4 - Low",
+    128: "&5 - Very Low",
 }

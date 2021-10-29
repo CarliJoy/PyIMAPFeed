@@ -11,9 +11,9 @@ def get_actions_with_labels() -> Dict[str, str]:
     TODO Implement properly
     """
     return {
-        "none": "Nothing",
-        "read": "Only mark message as read",
-        "archive": "Archive to disk",
-        "delete": "Delete message",
-        "sort": "Sort message to folder",
+        "none": "&nothing",
+        "read": "only mark message as &read",
+        "archive": "&archive to disk",
+        "delete": "&delete message",
+        "sort": "&move message to folder",
     }
