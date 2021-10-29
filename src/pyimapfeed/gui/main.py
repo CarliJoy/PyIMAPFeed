@@ -2,15 +2,19 @@ import importlib.resources as pkg_resources
 import sys
 from typing import Dict, Optional, Union
 
+from PyQt5.QtGui import QKeySequence
 from PyQt5.QtWidgets import (
     QApplication,
     QButtonGroup,
+    QComboBox,
+    QDesktopWidget,
     QGroupBox,
     QHBoxLayout,
     QLabel,
     QLayout,
     QPushButton,
     QRadioButton,
+    QShortcut,
     QTableWidget,
     QTextBrowser,
     QVBoxLayout,
@@ -83,20 +87,24 @@ class RadioGroup:
 
 
 class Window(QWidget):
+    # Shortcuts
+    shortcut_close: QShortcut
+
     # Layout Elements
-    main_window_layout: QHBoxLayout
-    main_message_layout: QVBoxLayout
-    main_action_layout: QVBoxLayout
+    layout_main_window: QHBoxLayout
+    layout_main_message: QVBoxLayout
+    layout_main_action: QVBoxLayout
 
     # Message Widgets
     message_view: QTextBrowser
     message_selection: QTableWidget
 
     # Action Widgets
-    action_heading_label: QLabel
+    label_action_heading: QLabel
     message_priority_radios: RadioGroup
     message_action_radios: RadioGroup
-    perform_action_btn: QPushButton
+    btn_perform_action: QPushButton
+    dropdown_folders: QComboBox
 
     # Make used constants part of the class, for easier interfacing
     MESSAGE_PRIORITIES: Dict[int, str] = const.MESSAGE_PRIORITIES
@@ -110,52 +118,73 @@ class Window(QWidget):
         self.message_view = QTextBrowser()
         self.message_selection = QTableWidget(10, 5)
 
-        self.action_heading_label = QLabel(const.GUI_ACTION_HEADER)
-        self.action_heading_label.setFont(HEADER_FONT)
-        self.perform_action_btn = QPushButton(const.GUI_BUTTON_PERFORM_ACTION)
+        self.label_action_heading = QLabel(const.GUI_ACTION_HEADER)
+        self.label_action_heading.setFont(HEADER_FONT)
+        self.btn_perform_action = QPushButton(const.GUI_BUTTON_PERFORM_ACTION)
+        self.btn_perform_action.clicked.connect(self.do_perform_and_go_next)
 
         # Create Main Window Layout
-        self.main_window_layout = QHBoxLayout()
+        self.layout_main_window = QHBoxLayout()
 
-        self.main_message_layout = QVBoxLayout()
-        self.main_action_layout = QVBoxLayout()
+        self.layout_main_message = QVBoxLayout()
+        self.layout_main_action = QVBoxLayout()
 
         # Build main layout
-        self.main_window_layout.addLayout(self.main_message_layout, 3)
-        self.main_window_layout.addLayout(self.main_action_layout)
+        self.layout_main_window.addLayout(self.layout_main_message, 3)
+        self.layout_main_window.addLayout(self.layout_main_action)
 
         # Create Message Layout
-        self.main_message_layout.addWidget(self.message_selection, 10)
-        self.main_message_layout.addWidget(self.message_view, 30)
+        self.layout_main_message.addWidget(self.message_selection, 10)
+        self.layout_main_message.addWidget(self.message_view, 30)
 
         # Create the Action Layout
-        self.main_action_layout.addWidget(self.action_heading_label)
+        self.layout_main_action.addWidget(self.label_action_heading)
         self.message_priority_radios = RadioGroup("Priority")
         for priority, label in self.MESSAGE_PRIORITIES.items():
             self.message_priority_radios.add_radio_button(label, priority)
 
-        self.main_action_layout.addWidget(self.message_priority_radios.box)
+        self.layout_main_action.addWidget(self.message_priority_radios.box)
 
         self.message_action_radios = RadioGroup("Action")
         actions = get_actions_with_labels()
         for key, label in actions.items():
             self.message_action_radios.add_radio_button(label, key=key)
-        self.main_action_layout.addWidget(self.message_action_radios.box)
+        self.layout_main_action.addWidget(self.message_action_radios.box)
 
-        self.main_action_layout.addStretch()
-        self.main_action_layout.addWidget(self.perform_action_btn)
+        self.layout_main_action.addStretch()
+        self.layout_main_action.addWidget(self.btn_perform_action)
 
         # Set the layout on the application's window
 
-        self.setLayout(self.main_window_layout)
+        self.setLayout(self.layout_main_window)
 
         # print(self.children())
+
+        # Define Shortcuts
+        self.shortcut_close = QShortcut(QKeySequence("Ctrl+Q"), self)
+        self.shortcut_close.activated.connect(self.do_quit_app)
+
+        # Define Window Size and position
+        self.resize(1024, 768)
+        self.center_window()
+
+    def center_window(self):
+        qtRectangle = self.frameGeometry()
+        centerPoint = QDesktopWidget().availableGeometry().center()
+        qtRectangle.moveCenter(centerPoint)
+        self.move(qtRectangle.topLeft())
+
+    def do_perform_and_go_next(self):
+        print(f"Action: {self.message_action_radios.get_selected().__repr__()}")
+        print(f"Priority: {self.message_priority_radios.get_selected().__repr__()}")
+
+    def do_quit_app(self):
+        self.close()
 
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     css = pkg_resources.read_text(resources, "Qapp.css")
-    print(css)
     app.setStyleSheet(css)
     window = Window()
     window.show()
