@@ -23,6 +23,11 @@ from PyQt5.QtWidgets import (
 
 from pyimapfeed import constants as const
 from pyimapfeed import resources
+from pyimapfeed.config import (
+    InternalIMAPServerConfig,
+    get_full_server_config,
+    get_server_configs,
+)
 from pyimapfeed.gui.fonts import HEADER_FONT
 from pyimapfeed.message_actions import get_actions_with_labels
 
@@ -86,7 +91,10 @@ class RadioGroup:
         return self._id_to_key_mapping.get(self.button_group.checkedId())
 
 
-class Window(QWidget):
+class MainWindow(QWidget):
+    # Settings
+    imap_config: InternalIMAPServerConfig
+
     # Shortcuts
     shortcut_close: QShortcut
 
@@ -109,9 +117,9 @@ class Window(QWidget):
     # Make used constants part of the class, for easier interfacing
     MESSAGE_PRIORITIES: Dict[int, str] = const.MESSAGE_PRIORITIES
 
-    def __init__(self):
-
+    def __init__(self, config: InternalIMAPServerConfig):
         super().__init__()
+        self.imap_config = config
         self.setWindowTitle(const.GUI_WINDOW_NAME)
 
         # Create all the widgets we need
@@ -186,6 +194,19 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     css = pkg_resources.read_text(resources, "Qapp.css")
     app.setStyleSheet(css)
-    window = Window()
+    # TODO create a widget to enter passwords and server
+    #      for the moment to debug, we only use the settings existing
+    configs = get_server_configs()
+    if not configs:
+        raise NotImplementedError(
+            "Could not load any server config, creating new ones "
+            "is not supported at the moment"
+        )
+    # TODO a Selection on Multiple server should be shown
+    config = next(configs.values().__iter__())
+    # TODO create a ask for Password Dialog
+    config = get_full_server_config(config)
+
+    window = MainWindow(config)
     window.show()
     sys.exit(app.exec_())
