@@ -29,7 +29,7 @@ class ImapMailBox(MailBox):
         return list(
             self.fetch(
                 mark_seen=False,
-                headers_only=True,
+                headers_only=False,
                 bulk=True,
                 limit=20,
                 charset="UTF8",

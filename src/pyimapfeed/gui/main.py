@@ -2,7 +2,9 @@ import importlib.resources as pkg_resources
 import sys
 from typing import Dict
 
+from imap_tools import MailMessage
 from PyQt5.QtGui import QKeySequence
+from PyQt5.QtWebEngineWidgets import QWebEngineView
 from PyQt5.QtWidgets import (
     QApplication,
     QComboBox,
@@ -11,8 +13,6 @@ from PyQt5.QtWidgets import (
     QLabel,
     QPushButton,
     QShortcut,
-    QTableWidget,
-    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -21,8 +21,9 @@ from pyimapfeed import constants as const
 from pyimapfeed import resources
 from pyimapfeed.config import get_full_server_config, get_server_configs
 from pyimapfeed.gui.fonts import HEADER_FONT
-from pyimapfeed.gui.widgets import RadioGroup
+from pyimapfeed.gui.widgets import MailTable, RadioGroup
 from pyimapfeed.imap import ImapMailBox
+from pyimapfeed.mail_helper import get_html_display
 from pyimapfeed.message_actions import get_actions_with_labels
 
 
@@ -39,8 +40,8 @@ class MainWindow(QWidget):
     layout_main_action: QVBoxLayout
 
     # Message Widgets
-    message_view: QTextBrowser
-    message_selection: QTableWidget
+    message_view: QWebEngineView
+    message_selection: MailTable
 
     # Action Widgets
     label_action_heading: QLabel
@@ -58,8 +59,8 @@ class MainWindow(QWidget):
         self.setWindowTitle(const.GUI_WINDOW_NAME)
 
         # Create all the widgets we need
-        self.message_view = QTextBrowser()
-        self.message_selection = QTableWidget(10, 5)
+        self.message_view = QWebEngineView()
+        self.message_selection = MailTable()
         self.dropdown_folders = QComboBox()
         self.dropdown_folders.addItems(self.imap_connection.get_gui_folders())
 
@@ -114,6 +115,14 @@ class MainWindow(QWidget):
         # Define Window Size and position
         self.resize(1024, 768)
         self.center_window()
+        self.load_mails()
+        self.message_selection.set_mail_selection_handler(self.display_mail)
+
+    def load_mails(self):
+        self.message_selection.add_mail_entries(self.imap_connection.get_mails())
+
+    def display_mail(self, mail: MailMessage):
+        self.message_view.setHtml(get_html_display(mail))
 
     def center_window(self):
         qtRectangle = self.frameGeometry()

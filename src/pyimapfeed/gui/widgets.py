@@ -1,6 +1,16 @@
-from typing import Dict, Optional, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
-from PyQt5.QtWidgets import QButtonGroup, QGroupBox, QLayout, QRadioButton, QVBoxLayout
+from imap_tools import MailMessage
+from PyQt5.QtWidgets import (
+    QButtonGroup,
+    QGroupBox,
+    QHeaderView,
+    QLayout,
+    QRadioButton,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+)
 
 RadioKey = Union[str, int]
 
@@ -60,3 +70,79 @@ class RadioGroup:
 
     def get_selected(self) -> Optional[RadioKey]:
         return self._id_to_key_mapping.get(self.button_group.checkedId())
+
+
+class MailTable(QTableWidget):
+    _imap_mails: Dict[int, MailMessage]
+    _mail_selection_handler: Optional[Callable[[MailMessage], None]]
+    # defines that last selected mail row
+    _mail_selected: Optional[int]
+
+    HEADERS = {
+        "subject": 0,
+        "sender": 1,
+        "date": 2,
+    }
+    HEADER_NAMES = {"subject": "Subject", "sender": "Sender", "date": "Sent"}
+
+    def __init__(self):
+        super().__init__(0, 3)
+        self._imap_mails = {}
+        self.setSelectionBehavior(self.SelectRows)
+        self.setSelectionMode(self.SingleSelection)
+        self.setHorizontalHeaderLabels(
+            [self.HEADER_NAMES[header] for header in self.HEADERS]
+        )
+        self.verticalHeader().setVisible(False)
+        self.setSortingEnabled(False)
+        self.horizontalHeader().setSectionResizeMode(0, QHeaderView.Stretch)
+        self.horizontalHeader().setSectionResizeMode(1, QHeaderView.Fixed)
+        self.horizontalHeader().setSectionResizeMode(2, QHeaderView.Fixed)
+        self._mail_selection_handler = None
+        self._mail_selected = None
+        self.itemSelectionChanged.connect(self.handle_mail_selection)
+
+    def get_selected_mail(self) -> Tuple[Optional[int], Optional[MailMessage]]:
+        if len(self.selectedItems()) > 0:
+            row = self.selectedItems()[0].row()
+            return row, self._imap_mails[row]
+        else:
+            return None, None
+
+    def set_mail_selection_handler(self, func: Callable[[MailMessage], None]):
+        self._mail_selection_handler = func
+
+    def handle_mail_selection(self):
+        if callable(self._mail_selection_handler):
+            row: int
+            mail: Optional[MailMessage]
+            row, mail = self.get_selected_mail()
+            if row is not None and row != self._mail_selected:
+                self._mail_selected = row
+                self._mail_selection_handler(mail)
+
+    def insert_mail_at_row(self, row: int, mail: MailMessage):
+        self.setItem(row, self.HEADERS["subject"], QTableWidgetItem(mail.subject))
+        sender_cell = QTableWidgetItem(
+            f"{mail.from_values.name} <{mail.from_values.email}>"
+        )
+        self.setItem(row, self.HEADERS["sender"], sender_cell)
+        self.setItem(
+            row,
+            self.HEADERS["date"],
+            QTableWidgetItem(f"{mail.date.astimezone():%Y-%m-%d %H:%M:%S}"),
+        )
+        self._imap_mails[row] = mail
+        if row == self._mail_selected:
+            # If a already active row is inserted, reset last shown mail
+            self._mail_selected = None
+            # and trigger the mail selection handler again
+            self.handle_mail_selection()
+
+    def add_mail_entries(self, mails: List[MailMessage]):
+        current_rows = self.rowCount()
+        self.setRowCount(current_rows + len(mails))
+        for row, mail in enumerate(mails, start=current_rows):
+            self.insert_mail_at_row(row, mail)
+        self.resizeColumnToContents(self.HEADERS["date"])
+        self.resizeColumnToContents(self.HEADERS["sender"])
