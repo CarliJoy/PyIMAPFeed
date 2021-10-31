@@ -29,6 +29,7 @@ from pyimapfeed.config import (
     get_server_configs,
 )
 from pyimapfeed.gui.fonts import HEADER_FONT
+from pyimapfeed.imap import get_folders
 from pyimapfeed.message_actions import get_actions_with_labels
 
 RadioKey = Union[str, int]
@@ -125,6 +126,8 @@ class MainWindow(QWidget):
         # Create all the widgets we need
         self.message_view = QTextBrowser()
         self.message_selection = QTableWidget(10, 5)
+        self.dropdown_folders = QComboBox()
+        self.dropdown_folders.addItems(get_folders(config))
 
         self.label_action_heading = QLabel(const.GUI_ACTION_HEADER)
         self.label_action_heading.setFont(HEADER_FONT)
@@ -158,6 +161,8 @@ class MainWindow(QWidget):
         for key, label in actions.items():
             self.message_action_radios.add_radio_button(label, key=key)
         self.layout_main_action.addWidget(self.message_action_radios.box)
+
+        self.layout_main_action.addWidget(self.dropdown_folders)
 
         self.layout_main_action.addStretch()
         self.layout_main_action.addWidget(self.btn_perform_action)
