@@ -23,13 +23,9 @@ from PyQt5.QtWidgets import (
 
 from pyimapfeed import constants as const
 from pyimapfeed import resources
-from pyimapfeed.config import (
-    InternalIMAPServerConfig,
-    get_full_server_config,
-    get_server_configs,
-)
+from pyimapfeed.config import get_full_server_config, get_server_configs
 from pyimapfeed.gui.fonts import HEADER_FONT
-from pyimapfeed.imap import get_folders
+from pyimapfeed.imap import ImapMailBox
 from pyimapfeed.message_actions import get_actions_with_labels
 
 RadioKey = Union[str, int]
@@ -94,7 +90,7 @@ class RadioGroup:
 
 class MainWindow(QWidget):
     # Settings
-    imap_config: InternalIMAPServerConfig
+    imap_connection: ImapMailBox
 
     # Shortcuts
     shortcut_close: QShortcut
@@ -118,16 +114,16 @@ class MainWindow(QWidget):
     # Make used constants part of the class, for easier interfacing
     MESSAGE_PRIORITIES: Dict[int, str] = const.MESSAGE_PRIORITIES
 
-    def __init__(self, config: InternalIMAPServerConfig):
+    def __init__(self, mailbox: ImapMailBox):
         super().__init__()
-        self.imap_config = config
+        self.imap_connection = mailbox
         self.setWindowTitle(const.GUI_WINDOW_NAME)
 
         # Create all the widgets we need
         self.message_view = QTextBrowser()
         self.message_selection = QTableWidget(10, 5)
         self.dropdown_folders = QComboBox()
-        self.dropdown_folders.addItems(get_folders(config))
+        self.dropdown_folders.addItems(self.imap_connection.get_gui_folders())
 
         self.label_action_heading = QLabel(const.GUI_ACTION_HEADER)
         self.label_action_heading.setFont(HEADER_FONT)
@@ -211,7 +207,7 @@ if __name__ == "__main__":
     config = next(configs.values().__iter__())
     # TODO create a ask for Password Dialog
     config = get_full_server_config(config)
-
-    window = MainWindow(config)
-    window.show()
+    with ImapMailBox(config) as imap_connection:
+        window = MainWindow(imap_connection)
+        window.show()
     sys.exit(app.exec_())
