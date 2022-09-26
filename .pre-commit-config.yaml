@@ -19,7 +19,7 @@ repos:
 
 # Avoid flake8 errors due to unused vars or imports
 - repo: https://github.com/PyCQA/autoflake
-  rev: v1.6.0
+  rev: v1.6.1
   hooks:
   - id: autoflake
     args: [
