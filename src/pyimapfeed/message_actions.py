@@ -2,6 +2,7 @@
 This file defines functions that perform actions with a single mail
 message
 """
+
 from typing import Dict
 
 
